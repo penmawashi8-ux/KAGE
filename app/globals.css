@@ -1,0 +1,638 @@
+:root {
+  --sumi: #181619;
+  --sumi-2: #211f23;
+  --sumi-3: #2a272c;
+  --line: #3b373e;
+  --kinari: #e6dfd0;
+  --kinari-dim: #9b958a;
+  --shu: #b5402e;
+  --shu-bright: #d05540;
+  --kin: #a18c5b;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  background: var(--sumi);
+  color: var(--kinari);
+  font-family: "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  min-height: 100dvh;
+  background-image: radial-gradient(
+    ellipse 120% 80% at 50% -10%,
+    #232026 0%,
+    var(--sumi) 60%
+  );
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+input,
+select {
+  font-family: inherit;
+}
+
+a {
+  color: inherit;
+}
+
+/* ---- 共通部品 ---- */
+
+.wrap {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 0 16px 64px;
+}
+
+.btn {
+  display: inline-block;
+  border: 1px solid var(--line);
+  background: var(--sumi-2);
+  color: var(--kinari);
+  padding: 12px 28px;
+  font-size: 1rem;
+  letter-spacing: 0.2em;
+  text-indent: 0.2em;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--kinari-dim);
+  background: var(--sumi-3);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.btn-shu {
+  border-color: var(--shu);
+  background: var(--shu);
+  color: #f3ece0;
+}
+
+.btn-shu:hover:not(:disabled) {
+  border-color: var(--shu-bright);
+  background: var(--shu-bright);
+}
+
+.panel {
+  border: 1px solid var(--line);
+  background: var(--sumi-2);
+  padding: 20px;
+}
+
+.dim {
+  color: var(--kinari-dim);
+}
+
+.shu {
+  color: var(--shu-bright);
+}
+
+/* ---- トップ ---- */
+
+.top-header {
+  text-align: center;
+  padding: 72px 0 40px;
+}
+
+.top-title {
+  font-size: 4.4rem;
+  font-weight: 700;
+  letter-spacing: 0.35em;
+  text-indent: 0.35em;
+  line-height: 1;
+}
+
+.top-title .kage {
+  color: var(--kinari);
+}
+
+.top-title .fuda {
+  color: var(--shu-bright);
+}
+
+.top-sub {
+  margin-top: 18px;
+  letter-spacing: 0.5em;
+  text-indent: 0.5em;
+  font-size: 0.85rem;
+  color: var(--kinari-dim);
+}
+
+.top-rule {
+  width: 64px;
+  height: 1px;
+  background: var(--kin);
+  margin: 28px auto 0;
+}
+
+.mode-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 28px;
+}
+
+@media (max-width: 640px) {
+  .mode-grid {
+    grid-template-columns: 1fr;
+  }
+  .top-title {
+    font-size: 3rem;
+  }
+}
+
+.mode-card {
+  border: 1px solid var(--line);
+  background: var(--sumi-2);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.mode-card h2 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+}
+
+.mode-card p {
+  font-size: 0.85rem;
+  line-height: 1.9;
+  color: var(--kinari-dim);
+  flex: 1;
+}
+
+.name-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 28px;
+  align-items: center;
+}
+
+.name-row label {
+  font-size: 0.85rem;
+  letter-spacing: 0.2em;
+  color: var(--kinari-dim);
+  white-space: nowrap;
+}
+
+.name-row input {
+  flex: 1;
+  background: var(--sumi);
+  border: 1px solid var(--line);
+  color: var(--kinari);
+  padding: 10px 14px;
+  font-size: 1rem;
+}
+
+.name-row input:focus {
+  outline: none;
+  border-color: var(--kin);
+}
+
+.cpu-count {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--kinari-dim);
+}
+
+.cpu-count select {
+  background: var(--sumi);
+  border: 1px solid var(--line);
+  color: var(--kinari);
+  padding: 6px 10px;
+  font-size: 0.95rem;
+}
+
+.rules {
+  margin-top: 40px;
+}
+
+.rules summary {
+  cursor: pointer;
+  letter-spacing: 0.25em;
+  font-size: 0.9rem;
+  color: var(--kinari-dim);
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  list-style: none;
+}
+
+.rules summary::-webkit-details-marker {
+  display: none;
+}
+
+.rules summary::before {
+  content: "▸ ";
+  color: var(--kin);
+}
+
+.rules[open] summary::before {
+  content: "▾ ";
+}
+
+.rules-body {
+  padding: 20px 4px;
+  font-size: 0.9rem;
+  line-height: 2.1;
+  color: var(--kinari);
+}
+
+.rules-body h3 {
+  font-size: 0.95rem;
+  letter-spacing: 0.2em;
+  color: var(--kin);
+  margin: 18px 0 6px;
+  font-weight: 600;
+}
+
+.rules-body h3:first-child {
+  margin-top: 0;
+}
+
+/* ---- 対局画面 ---- */
+
+.game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 18px 0 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.game-header .logo {
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+}
+
+.game-header .logo .fuda {
+  color: var(--shu-bright);
+}
+
+.round-label {
+  font-size: 0.9rem;
+  letter-spacing: 0.2em;
+  color: var(--kinari-dim);
+}
+
+.players-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.plaque {
+  flex: 1 1 140px;
+  min-width: 130px;
+  border: 1px solid var(--line);
+  background: var(--sumi-2);
+  padding: 10px 12px;
+}
+
+.plaque.is-you {
+  border-color: var(--kin);
+}
+
+.plaque.is-winner {
+  border-color: var(--shu);
+  background: #2a1e1c;
+}
+
+.plaque .p-name {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.plaque .p-tag {
+  font-size: 0.65rem;
+  color: var(--kinari-dim);
+  border: 1px solid var(--line);
+  padding: 0 4px;
+  letter-spacing: 0.1em;
+}
+
+.plaque .p-score {
+  font-size: 1.4rem;
+  margin-top: 2px;
+}
+
+.plaque .p-score small {
+  font-size: 0.7rem;
+  color: var(--kinari-dim);
+  margin-left: 4px;
+}
+
+.plaque .p-meta {
+  font-size: 0.72rem;
+  color: var(--kinari-dim);
+  margin-top: 4px;
+  line-height: 1.6;
+}
+
+.plaque .p-revealed {
+  color: var(--shu-bright);
+}
+
+.stage {
+  margin-top: 20px;
+  border: 1px solid var(--line);
+  background: var(--sumi-2);
+  padding: 24px 20px;
+  text-align: center;
+}
+
+.stage-message {
+  font-size: 1.05rem;
+  letter-spacing: 0.1em;
+  line-height: 2;
+}
+
+.timer-track {
+  margin: 18px auto 0;
+  max-width: 420px;
+  height: 3px;
+  background: var(--sumi-3);
+}
+
+.timer-bar {
+  height: 100%;
+  background: var(--shu);
+  transition: width 0.5s linear;
+}
+
+.decl-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.decl-item {
+  border: 1px solid var(--line);
+  padding: 10px 14px;
+  min-width: 96px;
+  background: var(--sumi);
+}
+
+.decl-item.is-top {
+  border-color: var(--shu);
+}
+
+.decl-item .d-name {
+  font-size: 0.78rem;
+  color: var(--kinari-dim);
+}
+
+.decl-item .d-value {
+  font-size: 1.7rem;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+.decl-item.is-top .d-value {
+  color: var(--shu-bright);
+}
+
+.doubt-actions {
+  margin-top: 22px;
+}
+
+.btn-doubt {
+  font-size: 1.25rem;
+  padding: 14px 48px;
+  letter-spacing: 0.4em;
+  text-indent: 0.4em;
+}
+
+/* ---- 手札と宣言 ---- */
+
+.hand-section {
+  margin-top: 22px;
+}
+
+.hand-label {
+  font-size: 0.8rem;
+  letter-spacing: 0.3em;
+  color: var(--kinari-dim);
+  margin-bottom: 10px;
+}
+
+.hand-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.card-btn {
+  width: 64px;
+  height: 92px;
+  border: 1px solid var(--line);
+  background: linear-gradient(160deg, #26232a 0%, #1d1b20 100%);
+  color: var(--kinari);
+  font-size: 2rem;
+  font-weight: 700;
+  font-family: inherit;
+  position: relative;
+  transition: border-color 0.12s, transform 0.12s;
+}
+
+.card-btn:hover:not(:disabled) {
+  border-color: var(--kinari-dim);
+  transform: translateY(-3px);
+}
+
+.card-btn.selected {
+  border-color: var(--shu-bright);
+  background: linear-gradient(160deg, #32241f 0%, #261c19 100%);
+  transform: translateY(-6px);
+}
+
+.card-btn:disabled {
+  opacity: 0.85;
+  cursor: default;
+}
+
+.card-btn .corner {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  font-size: 0.6rem;
+  font-weight: 400;
+  color: var(--kinari-dim);
+}
+
+.declare-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.declare-chip {
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--line);
+  background: var(--sumi);
+  color: var(--kinari);
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.declare-chip:hover:not(:disabled) {
+  border-color: var(--kinari-dim);
+}
+
+.declare-chip.selected {
+  border-color: var(--shu-bright);
+  color: var(--shu-bright);
+}
+
+.declare-chip:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.submit-row {
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.lie-note {
+  font-size: 0.78rem;
+  color: var(--kinari-dim);
+}
+
+.lie-note .shu {
+  color: var(--shu-bright);
+}
+
+/* ---- 結果・履歴 ---- */
+
+.result-line {
+  font-size: 1.1rem;
+  line-height: 2.2;
+}
+
+.result-line .big {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.history {
+  margin-top: 28px;
+}
+
+.history h3 {
+  font-size: 0.8rem;
+  letter-spacing: 0.3em;
+  color: var(--kinari-dim);
+  font-weight: 400;
+  margin-bottom: 10px;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.history-table th,
+.history-table td {
+  border: 1px solid var(--line);
+  padding: 7px 10px;
+  text-align: left;
+  vertical-align: top;
+  line-height: 1.8;
+}
+
+.history-table th {
+  color: var(--kinari-dim);
+  font-weight: 400;
+  letter-spacing: 0.15em;
+  white-space: nowrap;
+  background: var(--sumi-2);
+}
+
+/* ---- 最終結果 ---- */
+
+.standings {
+  margin-top: 24px;
+}
+
+.standing-row {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  border-bottom: 1px solid var(--line);
+  padding: 14px 6px;
+}
+
+.standing-row .rank {
+  font-size: 1.1rem;
+  width: 3.2em;
+  color: var(--kinari-dim);
+}
+
+.standing-row.first .rank,
+.standing-row.first .s-name {
+  color: var(--shu-bright);
+}
+
+.standing-row .s-name {
+  flex: 1;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.standing-row .s-score {
+  font-size: 1.3rem;
+}
+
+.wait-list {
+  margin-top: 16px;
+  font-size: 0.95rem;
+  line-height: 2.2;
+}
+
+.error-note {
+  margin-top: 12px;
+  color: var(--shu-bright);
+  font-size: 0.85rem;
+}
+
+.footer-note {
+  margin-top: 48px;
+  text-align: center;
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+  color: var(--kinari-dim);
+}
