@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { advance, applyDoubt, applyPick, startGame, viewFor, addCpus, FILL_TARGET } from "@/lib/engine";
+import { advance, applyDoubt, applyPass, applyPick, startGame, viewFor, addCpus, FILL_TARGET } from "@/lib/engine";
 import { getRoom, saveRoom, setOpenRoomId, withLock } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
@@ -31,6 +31,8 @@ export async function POST(
       error = applyPick(room, playerId, Number(body.card), Number(body.declared), now);
     } else if (type === "doubt") {
       error = applyDoubt(room, playerId, now);
+    } else if (type === "pass") {
+      error = applyPass(room, playerId);
     } else if (type === "start") {
       if (room.phase !== "waiting") {
         error = "すでに開始しています";

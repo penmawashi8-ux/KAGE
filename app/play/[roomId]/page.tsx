@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { RoomView, RoundRecord } from "@/lib/types";
+import { advance, applyDoubt, applyPass, applyPick, viewFor } from "@/lib/engine";
+import type { Room, RoomView, RoundRecord } from "@/lib/types";
 
 const KANJI = ["", "一", "二", "三", "四", "五", "六", "七"];
 
@@ -18,6 +19,9 @@ function useNow(intervalMs = 250): number {
 
 export default function PlayPage() {
   const { roomId } = useParams<{ roomId: string }>();
+  // "local" はサーバーを使わないCPU戦。ブラウザ内でエンジンを直接回す
+  const isLocal = roomId === "local";
+  const localRoomRef = useRef<Room | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [view, setView] = useState<RoomView | null>(null);
   const [gone, setGone] = useState(false);
@@ -40,10 +44,35 @@ export default function PlayPage() {
     setView(v);
   }, []);
 
+  // ローカルCPU戦: sessionStorage のルームを読み込み、タイマーでエンジンを進める
   useEffect(() => {
-    if (playerId === null) return;
+    if (!isLocal || playerId === null) return;
+    const raw = sessionStorage.getItem("kagefuda-local");
+    if (!raw) {
+      setGone(true);
+      return;
+    }
+    localRoomRef.current = JSON.parse(raw) as Room;
+
+    const step = () => {
+      const room = localRoomRef.current;
+      if (!room) return;
+      const now = Date.now();
+      advance(room, now);
+      sessionStorage.setItem("kagefuda-local", JSON.stringify(room));
+      applyView(viewFor(room, playerId, now));
+    };
+    step();
+    const t = setInterval(step, 400);
+    return () => clearInterval(t);
+  }, [isLocal, playerId, applyView]);
+
+  // オンライン戦: サーバーをポーリング。404は数回続いたときだけ「卓なし」と判断する
+  useEffect(() => {
+    if (isLocal || playerId === null) return;
     let stop = false;
     let timer: ReturnType<typeof setTimeout>;
+    let misses = 0;
 
     async function poll() {
       try {
@@ -51,10 +80,13 @@ export default function PlayPage() {
           cache: "no-store",
         });
         if (res.status === 404) {
-          setGone(true);
-          return;
-        }
-        if (res.ok) {
+          misses += 1;
+          if (misses >= 4) {
+            setGone(true);
+            return;
+          }
+        } else if (res.ok) {
+          misses = 0;
           applyView((await res.json()) as RoomView);
         }
       } catch {
@@ -68,7 +100,7 @@ export default function PlayPage() {
       stop = true;
       clearTimeout(timer);
     };
-  }, [roomId, playerId, applyView]);
+  }, [isLocal, roomId, playerId, applyView]);
 
   // ラウンドが変わったら選択をリセット
   const roundRef = useRef(0);
@@ -83,6 +115,30 @@ export default function PlayPage() {
 
   async function act(body: Record<string, unknown>) {
     if (!playerId) return;
+
+    if (isLocal) {
+      const room = localRoomRef.current;
+      if (!room) return;
+      const now = Date.now();
+      advance(room, now);
+      let err: string | null = null;
+      if (body.type === "pick") {
+        err = applyPick(room, playerId, Number(body.card), Number(body.declared), now);
+      } else if (body.type === "doubt") {
+        err = applyDoubt(room, playerId, now);
+      } else if (body.type === "pass") {
+        err = applyPass(room, playerId);
+      }
+      advance(room, now);
+      sessionStorage.setItem("kagefuda-local", JSON.stringify(room));
+      if (err) setError(err);
+      else {
+        setError(null);
+        applyView(viewFor(room, playerId, now));
+      }
+      return;
+    }
+
     setSending(true);
     setError(null);
     try {
@@ -223,6 +279,7 @@ export default function PlayPage() {
               <br />
               <span className="dim">
                 嘘は自由。ただし、ダウトされて暴かれれば一点を失います。
+                同じ宣言値がぶつかったときは、先に宣言した方が取ります。
               </span>
             </p>
             <TimerBar remainMs={remain(view.pickDeadline)} totalMs={40000} />
@@ -316,19 +373,26 @@ export default function PlayPage() {
           </p>
 
           {view.declarations && (
-            <div className="decl-list">
-              {view.declarations.map((d) => (
-                <div
-                  key={d.playerId}
-                  className={
-                    "decl-item" + (d.playerId === view.doubt!.winnerId ? " is-top" : "")
-                  }
-                >
-                  <div className="d-name">{nameOf(d.playerId)}</div>
-                  <div className="d-value">{KANJI[d.declared]}</div>
-                </div>
-              ))}
-            </div>
+            <>
+              <div className="decl-list">
+                {view.declarations.map((d, i) => (
+                  <div
+                    key={d.playerId}
+                    className={
+                      "decl-item" + (d.playerId === view.doubt!.winnerId ? " is-top" : "")
+                    }
+                  >
+                    <div className="d-name">
+                      <span className="d-order">{i + 1}番</span> {nameOf(d.playerId)}
+                    </div>
+                    <div className="d-value">{KANJI[d.declared]}</div>
+                  </div>
+                ))}
+              </div>
+              <p className="dim" style={{ marginTop: 10, fontSize: "0.75rem" }}>
+                並びは宣言した順。同じ宣言値なら、先に宣言した方が暫定勝者になります。
+              </p>
+            </>
           )}
 
           <TimerBar remainMs={remain(view.doubt.deadline)} totalMs={20000} />
@@ -338,18 +402,33 @@ export default function PlayPage() {
 
           <div className="doubt-actions">
             {you && view.doubt.winnerId !== you.id ? (
-              <>
-                <button
-                  className="btn btn-shu btn-doubt"
-                  disabled={sending}
-                  onClick={() => act({ type: "doubt" })}
-                >
-                  ダウト
-                </button>
-                <p className="dim" style={{ marginTop: 12, fontSize: "0.8rem" }}>
-                  嘘を見破れば＋2点。本物なら −1点。早い者勝ちで一人だけ。
+              view.doubt.passed.includes(you.id) ? (
+                <p className="dim" style={{ fontSize: "0.9rem" }}>
+                  見送りました。成り行きを見守ります…
                 </p>
-              </>
+              ) : (
+                <>
+                  <button
+                    className="btn btn-shu btn-doubt"
+                    disabled={sending}
+                    onClick={() => act({ type: "doubt" })}
+                  >
+                    ダウト
+                  </button>
+                  <button
+                    className="btn"
+                    style={{ marginLeft: 12 }}
+                    disabled={sending}
+                    onClick={() => act({ type: "pass" })}
+                  >
+                    見送る
+                  </button>
+                  <p className="dim" style={{ marginTop: 12, fontSize: "0.8rem" }}>
+                    嘘を見破れば＋2点。本物なら −1点。早い者勝ちで一人だけ。
+                    全員が見送ればすぐ次へ進みます。
+                  </p>
+                </>
+              )
             ) : you ? (
               <p className="dim" style={{ fontSize: "0.9rem" }}>
                 あなたの宣言が場に出ています。誰も動かなければ＋1点。
@@ -380,10 +459,17 @@ export default function PlayPage() {
               >
                 <span className="rank">第{KANJI[Math.min(s.rank, 7)]}位</span>
                 <span className="s-name">{nameOf(s.playerId)}</span>
+                <span className="dim" style={{ fontSize: "0.75rem" }}>
+                  見破り{s.doubtWins}回
+                </span>
                 <span className="s-score">{s.score}点</span>
               </div>
             ))}
           </div>
+          <p className="dim" style={{ marginTop: 14, fontSize: "0.75rem" }}>
+            同点のときは、嘘を見破った回数が多い方 →
+            より遅い局で得点した方、の順で上位。それでも並べば同着です。
+          </p>
           <p style={{ marginTop: 28 }}>
             <Link className="btn btn-shu" href="/">
               もう一卓

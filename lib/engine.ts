@@ -98,6 +98,7 @@ function resolvePicks(room: Room, now: number): void {
     winnerId: winner.p.id,
     deadline: now + DOUBT_MS,
     cpuPlan: planCpuDoubt(room, winner.p.id, winner.c.declared, now),
+    passed: [],
   };
 }
 
@@ -201,6 +202,18 @@ export function advance(room: Room, now: number): void {
         resolveDoubt(room, d.cpuPlan.playerId, now);
         continue;
       }
+      // ダウトできる人間が全員「見送り」なら、間を少しだけ残して早送りする
+      const eligibleHumans = room.players.filter(
+        (p) => !p.isCpu && p.id !== d.winnerId
+      );
+      const allPassed = eligibleHumans.every((p) => d.passed.includes(p.id));
+      if (allPassed) {
+        if (d.cpuPlan) {
+          d.cpuPlan.at = Math.min(d.cpuPlan.at, now + 1_500 + Math.random() * 2_000);
+        } else {
+          d.deadline = Math.min(d.deadline, now + 2_000 + Math.random() * 2_500);
+        }
+      }
       if (now >= d.deadline) {
         resolveDoubt(room, null, now);
         continue;
@@ -244,9 +257,19 @@ export function applyPick(
 export function applyDoubt(room: Room, playerId: string, now: number): string | null {
   if (room.phase !== "doubt" || !room.doubt) return "今はダウトできません";
   if (room.doubt.winnerId === playerId) return "自分の宣言にはダウトできません";
+  if (room.doubt.passed.includes(playerId)) return "このラウンドは見送り済みです";
   const p = room.players.find((x) => x.id === playerId);
   if (!p) return "プレイヤーが見つかりません";
   resolveDoubt(room, playerId, now);
+  return null;
+}
+
+export function applyPass(room: Room, playerId: string): string | null {
+  if (room.phase !== "doubt" || !room.doubt) return "今は見送れません";
+  if (room.doubt.winnerId === playerId) return "宣言者は見送れません";
+  const p = room.players.find((x) => x.id === playerId);
+  if (!p) return "プレイヤーが見つかりません";
+  if (!room.doubt.passed.includes(playerId)) room.doubt.passed.push(playerId);
   return null;
 }
 
@@ -268,15 +291,44 @@ export function viewFor(room: Room, playerId: string, now: number): RoomView {
 
   let standings: RoomView["standings"] = null;
   if (room.phase === "finished") {
-    const sorted = [...room.players].sort((a, b) => b.score - a.score);
+    // 同点の決着: ①嘘を見破った回数 ②より遅い局での得点 ③それでも並べば同着
+    const stats = new Map(
+      room.players.map((p) => {
+        const doubtWins = room.history.filter(
+          (h) => h.doubt && h.doubt.by === p.id && h.doubt.lie
+        ).length;
+        let lastGain = 0;
+        for (const h of room.history) {
+          if ((h.deltas[p.id] ?? 0) > 0) lastGain = h.round;
+        }
+        return [p.id, { doubtWins, lastGain }] as const;
+      })
+    );
+    const sorted = [...room.players].sort((a, b) => {
+      const sa = stats.get(a.id)!;
+      const sb = stats.get(b.id)!;
+      return (
+        b.score - a.score ||
+        sb.doubtWins - sa.doubtWins ||
+        sb.lastGain - sa.lastGain
+      );
+    });
     let rank = 0;
-    let prev = Number.POSITIVE_INFINITY;
+    let prevKey = "";
     standings = sorted.map((p, i) => {
-      if (p.score < prev) {
+      const s = stats.get(p.id)!;
+      const key = `${p.score}/${s.doubtWins}/${s.lastGain}`;
+      if (key !== prevKey) {
         rank = i + 1;
-        prev = p.score;
+        prevKey = key;
       }
-      return { playerId: p.id, score: p.score, rank };
+      return {
+        playerId: p.id,
+        score: p.score,
+        rank,
+        doubtWins: s.doubtWins,
+        lastGain: s.lastGain,
+      };
     });
   }
 
@@ -304,7 +356,13 @@ export function viewFor(room: Room, playerId: string, now: number): RoomView {
       you: p.id === playerId,
     })),
     declarations,
-    doubt: room.doubt ? { winnerId: room.doubt.winnerId, deadline: room.doubt.deadline } : null,
+    doubt: room.doubt
+      ? {
+          winnerId: room.doubt.winnerId,
+          deadline: room.doubt.deadline,
+          passed: room.doubt.passed,
+        }
+      : null,
     lastResult:
       room.phase === "result" || room.phase === "finished"
         ? room.history[room.history.length - 1] ?? null
