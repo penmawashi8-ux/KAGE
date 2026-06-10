@@ -409,6 +409,13 @@ a {
   color: var(--kinari-dim);
 }
 
+.decl-item .d-order {
+  font-size: 0.65rem;
+  border: 1px solid var(--line);
+  padding: 0 4px;
+  margin-right: 2px;
+}
+
 .decl-item .d-value {
   font-size: 1.7rem;
   font-weight: 700;

@@ -31,6 +31,8 @@ export interface DoubtState {
   deadline: number;
   /** このラウンドでダウトする予定のCPUと実行時刻 */
   cpuPlan: { playerId: string; at: number } | null;
+  /** 「見送る」を選んだプレイヤー。対象者全員が見送れば早送りする */
+  passed: string[];
 }
 
 export interface RoundRecord {
@@ -79,8 +81,16 @@ export interface RoomView {
     you: boolean;
   }[];
   declarations: { playerId: string; declared: number }[] | null;
-  doubt: { winnerId: string; deadline: number } | null;
+  doubt: { winnerId: string; deadline: number; passed: string[] } | null;
   lastResult: RoundRecord | null;
   history: RoundRecord[];
-  standings: { playerId: string; score: number; rank: number }[] | null;
+  standings:
+    | {
+        playerId: string;
+        score: number;
+        rank: number;
+        doubtWins: number;
+        lastGain: number;
+      }[]
+    | null;
 }

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { addCpus, addHuman, newRoom, startGame } from "@/lib/engine";
 
 export default function TopPage() {
   const router = useRouter();
@@ -10,14 +11,14 @@ export default function TopPage() {
   const [busy, setBusy] = useState<"match" | "cpu" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function start(mode: "match" | "cpu") {
-    setBusy(mode);
+  async function startMatch() {
+    setBusy("match");
     setError(null);
     try {
-      const res = await fetch(mode === "match" ? "/api/match" : "/api/cpu", {
+      const res = await fetch("/api/match", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, cpuCount }),
+        body: JSON.stringify({ name }),
       });
       if (!res.ok) throw new Error();
       const data = (await res.json()) as { roomId: string; playerId: string };
@@ -27,6 +28,20 @@ export default function TopPage() {
       setError("接続に失敗しました。少し待ってからもう一度どうぞ。");
       setBusy(null);
     }
+  }
+
+  // CPU戦はサーバーを使わず、ブラウザの中だけで進行する
+  function startCpu() {
+    setBusy("cpu");
+    const now = Date.now();
+    const room = newRoom(false, now);
+    room.id = "local";
+    const player = addHuman(room, name, now);
+    addCpus(room, cpuCount, now);
+    startGame(room, now);
+    sessionStorage.setItem("kagefuda-local", JSON.stringify(room));
+    sessionStorage.setItem("kagefuda:local", player.id);
+    router.push("/play/local");
   }
 
   return (
@@ -61,7 +76,7 @@ export default function TopPage() {
           <button
             className="btn btn-shu"
             disabled={busy !== null}
-            onClick={() => start("match")}
+            onClick={startMatch}
           >
             {busy === "match" ? "席を探しています…" : "卓に着く"}
           </button>
@@ -85,7 +100,7 @@ export default function TopPage() {
           <button
             className="btn"
             disabled={busy !== null}
-            onClick={() => start("cpu")}
+            onClick={startCpu}
           >
             {busy === "cpu" ? "支度しています…" : "ひとりで打つ"}
           </button>
@@ -106,13 +121,15 @@ export default function TopPage() {
             <br />
             二、宣言値が最も大きい人が暫定勝者。同値なら先に宣言した方が取ります。
             <br />
-            三、他の全員に約二十秒の「ダウト」の機会があります。早い者勝ちで一人だけ。
+            三、他の全員に約二十秒の「ダウト」の機会があります。早い者勝ちで一人だけ。ダウトしないなら「見送る」を選べて、全員が見送ればすぐ次へ進みます。
             <br />
             　・ダウト成立なら札を公開。嘘なら宣言者が一点失い、見破った側は二点得ます。本当なら宣言者が二点得て、疑った側が一点失います。
             <br />
             　・誰もダウトしなければ暫定勝者に一点。札は伏せられたまま誰にも見られません。
             <br />
             四、使った札は手元に戻りません。七ラウンドの後、最も点の多い者の勝ちです。
+            <br />
+            五、同点のときは、嘘を見破った回数が多い方、それでも並べば、より遅い局で得点した方が上位。なお並べば同着です。
           </p>
 
           <h3>勘どころ</h3>
